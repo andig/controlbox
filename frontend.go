@@ -156,7 +156,9 @@ func readData(h *controlbox, entity spineapi.EntityRemoteInterface, ucs []string
 func sendData(h *controlbox, ski string, uc string) {
 	switch uc {
 	case "":
-		frontend.sendText(QRCode, h.myService.QRCodeText())
+		// TODO
+		// frontend.sendText(QRCode, h.myService.QRCodeText())
+		frontend.sendText(QRCode, "")
 
 	case "LPC":
 		frontend.sendLimit(ski, GetConsumptionLimit, "LPC", ucapi.LoadLimit{
@@ -190,12 +192,6 @@ var upgrader = websocket.Upgrader{
 		// allow connection from any host
 		return true
 	},
-}
-
-func setupRoutes(h *controlbox) {
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(h, w, r)
-	})
 }
 
 func enableCors(w *http.ResponseWriter) {
@@ -316,10 +312,11 @@ func reader(h *controlbox, ws *websocket.Conn) {
 			for _, remoteEntityScenario := range h.uclpp.RemoteEntitiesScenarios() {
 				h.sendProductionFailsafeDuration(remoteEntityScenario.Entity)
 			}
-		case StopConsumptionHeartbeat:
-			h.uclpc.StopHeartbeat()
-		case StartConsumptionHeartbeat:
-			h.uclpc.StartHeartbeat()
+			// TODO
+			// case StopConsumptionHeartbeat:
+			// 	h.uclpc.StopHeartbeat()
+			// case StartConsumptionHeartbeat:
+			// 	h.uclpc.StartHeartbeat()
 		}
 
 		frontend.sendNotification("", Acknowledge, "")
