@@ -102,7 +102,7 @@ func (h *controlbox) run() {
 
 	configuration, err := api.NewConfiguration(
 		vendorCode, deviceBrand, deviceModel, serialNumber,
-		// []shipapi.DeviceCategoryType{shipapi.DeviceCategoryTypeGridConnectionHub},
+		[]shipapi.DeviceCategoryType{shipapi.DeviceCategoryTypeGridConnectionHub},
 		model.DeviceTypeTypeElectricitySupplySystem,
 		[]model.EntityTypeType{model.EntityTypeTypeGridGuard},
 		port, certificate, time.Second*10)

@@ -156,9 +156,7 @@ func readData(h *controlbox, entity spineapi.EntityRemoteInterface, ucs []string
 func sendData(h *controlbox, ski string, uc string) {
 	switch uc {
 	case "":
-		// TODO
-		// frontend.sendText(QRCode, h.myService.QRCodeText())
-		frontend.sendText(QRCode, "")
+		frontend.sendText(QRCode, h.myService.QRCodeText())
 
 	case "LPC":
 		frontend.sendLimit(ski, GetConsumptionLimit, "LPC", ucapi.LoadLimit{
@@ -238,7 +236,10 @@ func reader(h *controlbox, ws *websocket.Conn) error {
 			if !exists {
 				connected, exists2 := h.isConnected[remoteSki]
 				if !exists2 || !connected {
-					h.myService.RegisterRemoteSKI(remoteSki)
+					// TODO
+					// second parameter shipID is optional, but if available it should be provided
+					// => test if available
+					h.myService.RegisterRemoteSKI(remoteSki, "")
 				}
 			} else if info.Device != nil {
 				for _, entity := range info.Device.Entities() {
