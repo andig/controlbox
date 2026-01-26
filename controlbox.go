@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"sync"
@@ -56,39 +57,74 @@ type controlbox struct {
 	mutex sync.Mutex
 }
 
+func loadOrCreateCertificate(dir string) (tls.Certificate, error) {
+	crtPath := filepath.Join(dir, "cb.crt")
+	keyPath := filepath.Join(dir, "cb.key")
+
+	// If both files exist → load
+	if _, err := os.Stat(crtPath); err == nil {
+		if _, err := os.Stat(keyPath); err == nil {
+			return tls.LoadX509KeyPair(crtPath, keyPath)
+		}
+	}
+
+	// Otherwise create new certificate
+	certTLS, err := cert.CreateCertificate("Demo", "Demo", "DE", "Demo-Unit-01")
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	// Write certificate
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certTLS.Certificate[0],
+	})
+	if err := os.WriteFile(crtPath, certPEM, 0644); err != nil {
+		return tls.Certificate{}, err
+	}
+
+	// Write private key
+	privKey := certTLS.PrivateKey.(*ecdsa.PrivateKey)
+	keyBytes, err := x509.MarshalECPrivateKey(privKey)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	keyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: keyBytes,
+	})
+	if err := os.WriteFile(keyPath, keyPEM, 0600); err != nil {
+		return tls.Certificate{}, err
+	}
+
+	return certTLS, nil
+}
+
 func (h *controlbox) run() {
-	var err error
-	var certificate tls.Certificate
-
-	if len(os.Args) == 4 {
-		certificate, err = tls.LoadX509KeyPair(os.Args[2], os.Args[3])
-		if err != nil {
-			usage()
-			log.Fatal(err)
-		}
-	} else {
-		certificate, err = cert.CreateCertificate("Demo", "Demo", "DE", "Demo-Unit-01")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		pemdata := pem.EncodeToMemory(&pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: certificate.Certificate[0],
-		})
-		fmt.Println(string(pemdata))
-
-		b, err := x509.MarshalECPrivateKey(certificate.PrivateKey.(*ecdsa.PrivateKey))
-		if err != nil {
-			log.Fatal(err)
-		}
-		pemdata = pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: b})
-		fmt.Println(string(pemdata))
+	if len(os.Args) < 2 || len(os.Args) > 3 {
+		fmt.Println("Usage: controlbox <port> [cert-directory]")
+		os.Exit(1)
 	}
 
 	port, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		usage()
+		log.Fatal(err)
+	}
+
+	certDir := "."
+	if len(os.Args) == 3 {
+		certDir = os.Args[2]
+	}
+
+	certDir, err = filepath.Abs(certDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	certificate, err := loadOrCreateCertificate(certDir)
+	if err != nil {
 		log.Fatal(err)
 	}
 
