@@ -7,52 +7,29 @@ ControlBox is a sample EEBUS GridGuard implementation that implements these EEBU
 - MonitoringAppliance Monitoring of Power Consumption (MPC)
 - MonitoringAppliance Monitoring of Grid Connection Point (MGCP)
 
-Forked from [vollautomat's eebus-go](https://github.com/vollautomat/eebus-go), based on [enbility's eebus-go](https://github.com/enbility/eebus-go).
+Forked from [vollautomat's eebus-go repository](https://github.com/vollautomat/eebus-go), based on [enbility's eebus-go implementation](https://github.com/enbility/eebus-go).
 
 ### Installation & Execution
 
 #### ControlBox
 
-Generate EEBUS certificate, key and SKI:
+Run ControlBox:
 ```
 cd /path/to/controlbox
 go run . 4712
-
------BEGIN CERTIFICATE-----
-MIIB4DCCAYagAwIBAgIUNZ5cJ2xKkKz3N7r0K9vK2A5x5EkwCgYIKoZIzj0EAwIw
-STELMAkGA1UEBhMCREUxEzARBgNVBAoMCkVFQlVTIERFTU8xJTAjBgNVBAMMHEVF
-QlVTIERldmljZSBDZXJ0ICMwMjAeFw0yNjAxMjAwMDAwMDBaFw0zNjAxMjAwMDAw
-MDBaMEkxCzAJBgNVBAYTAkRFMRMwEQYDVQQKDApFRUJVUyBERU1PMRkwFwYDVQQD
-DBBFRUJVUyBEZXZpY2UgMjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKqkH+5T
-uZyPzVYzY5n1L8Qz6ZcQZbQ+0z0J9n5W2XvX8Kz3C3XWkFJ9B1k9g7y8wE3D8N6M
-z3W8AqejUzBRMB0GA1UdDgQWBBQmC8kY8X1d6T2Jq1p4k8Yt9Jq3ETAfBgNVHSME
-GDAWgBQmC8kY8X1d6T2Jq1p4k8Yt9Jq3ETAPBgNVHRMBAf8EBTADAQH/MAoGCCqG
-SM49BAMCA0cAMEQCIGc5N6F6cF8mZQ3KkXyX9Z3kY1z4kMZx8Y1XKp7pAiA6c2VQ
-nYF9s6XK2E5p3Yy2F1J6kKp8F7F5HcN4w==
------END CERTIFICATE-----
-
------BEGIN EC PRIVATE KEY-----
-MHcCAQEEIO3ZkY4pWZ7k4cZP0Kp0Z4QvV7yZ0pJ7nY2kN2Vf9FQBoAoGCCqGSM49
-AwEHoUQDQgAEKqkH+5TuZyPzVYzY5n1L8Qz6ZcQZbQ+0z0J9n5W2XvX8Kz3C3XW
-kFJ9B1k9g7y8wE3D8N6Mz3W8AqejUw==
------END EC PRIVATE KEY-----
-
-Local SKI: A46D9C217B8F335E921C4FAA087E615C9D2A73F0
+2025-04-10 16:39:14 INFO  Local SKI: A46D9C217B8F335E921C4FAA087E615C9D2A73F0
 ```
 
-Note the local SKI and save certificate and key to respective files (e.g. `cb.crt` and `cb.key`) and run the ControlBox:
-```
-go run . 4712 cb.crt cb.key
-```
+Note the local SKI which is logged on ControlBox startup. Certificate and key are automatically created and saved to respective files.
 
-#### evcc
+#### Connect evcc
 
 Generate EEBUS certificate and key for evcc via evcc CLI…
 ```
 evcc eebus-cert
 ```
 
-and add them to the `evcc.yaml` config file:
+... and add them to the `evcc.yaml` config file:
 ```
 eebus:
   certificate:
