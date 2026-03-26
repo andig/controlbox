@@ -22,37 +22,9 @@ go run . 4712
 
 Note the local SKI which is logged on ControlBox startup. Certificate and key are automatically created and saved to respective files.
 
-#### Connect evcc
+#### evcc
 
-Generate EEBUS certificate and key for evcc via evcc CLI…
-```
-evcc eebus-cert
-```
-
-... and add them to the `evcc.yaml` config file:
-```
-eebus:
-  certificate:
-    public: |
-      -----BEGIN CERTIFICATE-----
-      MIIB3TCCAYOgAwIBAgIUWZp7lZ9JcM8xE5cQ6+4JkF0yZVswCgYIKoZIzj0EAwIw
-      RDELMAkGA1UEBhMCREUxEjAQBgNVBAoMCUVFQlVTIFRFU1QxHTAbBgNVBAMMFEVF
-      QlVTIERldmljZSBDZXJ0MB4XDTI2MDEyMDAwMDAwMFoXDTM2MDEyMDAwMDAwMFow
-      RDELMAkGA1UEBhMCREUxEjAQBgNVBAoMCUVFQlVTIFRFU1QxHTAbBgNVBAMMFEVF
-      QlVTIERldmljZSBDZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9G5xQK+S
-      M6a9uY+qF8bB9n3GJ3Xh7V1Z5zM2Y3m1K1j9m1W5l0yBzYVZbF3gY7Cw7b7F1P0E
-      Yt7D6kUq8aNTMFEwHQYDVR0OBBYEFN5C8sKx8c7K8Zx9+5J7n8Z2cJ5LMB8GA1Ud
-      IwQYMBaAFN5C8sKx8c7K8Zx9+5J7n8Z2cJ5LMA8GA1UdEwEB/wQFMAMBAf8wCgYI
-      KoZIzj0EAwIDSAAwRQIhAKF4Ewz5kD3qgC9Z7U8xZ5M1X8J6cJ3FZp6n3mMRAiB
-      4YF8uQ5pJwYVZJ4n9GZPZJmM9H4k7Z0n9F5YVQ==
-      -----END CERTIFICATE-----
-    private: |
-      -----BEGIN EC PRIVATE KEY-----
-      MHcCAQEEIDP6JmP0kK6J7QFZ6NnZ4qFZQ1T+9n9C5k9Z8FZqz0ZBoAoGCCqGSM49
-      AwEHoUQDQgAE9G5xQK+SM6a9uY+qF8bB9n3GJ3Xh7V1Z5zM2Y3m1K1j9m1W5l0yB
-      zYVZbF3gY7Cw7b7F1P0EYt7D6kUq8Q==
-      -----END EC PRIVATE KEY-----
-```
+As of evcc 0.301.0, EEBUS is enabled by default with certifacte/key being automatically created, dramatically simplifying setup.
 
 Add ControlBox to the `evcc.yaml`:
 ```
@@ -80,3 +52,5 @@ Open ControlBox UI via web browser URI:
 ```
 http://localhost:7081/
 ```
+
+
