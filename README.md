@@ -53,4 +53,6 @@ Open ControlBox UI via web browser URI:
 http://localhost:7081/
 ```
 
+<p align="center"><img width="795" height="866" alt="image" src="https://github.com/user-attachments/assets/dc1fb9ff-2b89-4738-9e94-0a7d1f43111c" /></p>
+
 
