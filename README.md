@@ -1,10 +1,58 @@
-## ControlBox
+# ControlBox
 
 ControlBox is a sample EEBUS GridGuard implementation that implements these EEBUS use cases:
 
 - EnergyGuard Limitation of Power Consumption (LPC)
-- EneryGuard Limitation of Power Production (LPP)
-- MonitoringApplicance Monitoring of Power Consumption (MPC)
-- MonitoringApplicance Monitoring of Grid Connection Point (MGCP)
+- EnergyGuard Limitation of Power Production (LPP)
+- MonitoringAppliance Monitoring of Power Consumption (MPC)
+- MonitoringAppliance Monitoring of Grid Connection Point (MGCP)
 
-Forked from https://github.com/vollautomat/eebus-go, based on https://github.com/enbility/eebus-go.
+Forked from [vollautomat's eebus-go repository](https://github.com/vollautomat/eebus-go), based on [enbility's eebus-go implementation](https://github.com/enbility/eebus-go).
+
+### Installation & Execution
+
+#### ControlBox
+
+Run ControlBox:
+```
+cd /path/to/controlbox
+go run . 4712
+2025-04-10 16:39:14 INFO  Local SKI: A46D9C217B8F335E921C4FAA087E615C9D2A73F0
+```
+
+Note the local SKI which is logged on ControlBox startup. Certificate and key are automatically created and saved to respective files.
+
+#### evcc
+
+As of evcc 0.301.0, EEBUS is enabled by default with certifacte/key being automatically created, dramatically simplifying setup.
+
+Add ControlBox to the `evcc.yaml`:
+```
+hems:
+  type: eebus
+  ski: A46D9C217B8F335E921C4FAA087E615C9D2A73F0 # local SKI of the ControlBox
+```
+
+Restarting evcc will automatically connect evcc to the ControlBox.
+
+#### ControlBox Frontend
+
+Install dependencies:
+```
+cd /path/to/controlbox/frontend
+npm install
+```
+
+Run web server:
+```
+npm run dev
+```
+
+Open ControlBox UI via web browser URI:
+```
+http://localhost:7081/
+```
+
+<p align="center"><img width="795" height="866" alt="image" src="https://github.com/user-attachments/assets/dc1fb9ff-2b89-4738-9e94-0a7d1f43111c" /></p>
+
+
