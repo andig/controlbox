@@ -18,11 +18,11 @@ var frontend WebsocketClient
 
 // main app
 func usage() {
-	fmt.Println("First Run:")
-	fmt.Println("  go controlbox <serverport>")
+	fmt.Println("Usage: controlbox <port>")
 	fmt.Println()
-	fmt.Println("General Usage:")
-	fmt.Println("  go controlbox <serverport> <crtfile> <keyfile>")
+	fmt.Println("Certificate configuration via .env file:")
+	fmt.Println("  CERT_PEM + KEY_PEM   inline PEM content")
+	fmt.Println("  (auto-generated and persisted on first run if absent)")
 }
 
 func setupRoutes(h *controlbox) {
@@ -32,9 +32,9 @@ func setupRoutes(h *controlbox) {
 }
 
 func main() {
-	if len(os.Args) < 2 {
+	if len(os.Args) != 2 {
 		usage()
-		return
+		os.Exit(1)
 	}
 
 	srv := new(controlbox)
