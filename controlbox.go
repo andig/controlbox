@@ -22,6 +22,7 @@ import (
 	"github.com/enbility/eebus-go/usecases/ma/mpc"
 	shipapi "github.com/enbility/ship-go/api"
 	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/enbility/ship-go/cert"
 	spineapi "github.com/enbility/spine-go/api"
 	"github.com/enbility/spine-go/model"
@@ -57,22 +58,11 @@ type controlbox struct {
 	mutex sync.Mutex
 }
 
-// loadEnvFile merges a .env file into the process environment using godotenv.
-// OS environment variables always take precedence; .env only fills in gaps.
-// A missing file is silently ignored.
-func loadEnvFile(path string) error {
-	err := godotenv.Load(path)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	return nil
-}
-
 // resolveCertificate loads a TLS certificate from CERT_PEM / KEY_PEM.
 // OS environment variables are checked first; .env fills in any gaps.
 // If neither source provides values a self-signed certificate is generated,
-// persisted to envPath, and returned so it is usable in the current run too.
-func resolveCertificate(envPath string) (tls.Certificate, error) {
+// persisted and returned so it is usable in the current run too.
+func resolveCertificate() (tls.Certificate, error) {
 	certPEM := os.Getenv("CERT_PEM")
 	keyPEM := os.Getenv("KEY_PEM")
 	if certPEM != "" && keyPEM != "" {
@@ -84,13 +74,14 @@ func resolveCertificate(envPath string) (tls.Certificate, error) {
 	}
 
 	// Nothing configured — generate and persist.
-	return generateAndPersistCertificate(envPath)
+	return generateAndPersistCertificate()
 }
 
 // generateAndPersistCertificate creates a self-signed certificate, encodes it
-// as inline PEM, appends CERT_PEM / KEY_PEM to envPath for future runs, and
+// as inline PEM, appends CERT_PEM / KEY_PEM to .env for future runs, and
 // returns the certificate directly so it is usable in the current run too.
-func generateAndPersistCertificate(envPath string) (tls.Certificate, error) {
+func generateAndPersistCertificate() (tls.Certificate, error) {
+	const envPath = ".env"
 	log.Printf("No certificate configured — generating self-signed certificate")
 
 	certTLS, err := cert.CreateCertificate("Demo", "Demo", "DE", "Demo-Unit-01")
@@ -132,17 +123,12 @@ func generateAndPersistCertificate(envPath string) (tls.Certificate, error) {
 }
 
 func (h *controlbox) run() {
-	const envPath = ".env"
-	if err := loadEnvFile(envPath); err != nil {
-		log.Fatalf("failed to load %s: %v", envPath, err)
-	}
-
 	port, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	certificate, err := resolveCertificate(envPath)
+	certificate, err := resolveCertificate()
 	if err != nil {
 		log.Fatal(err)
 	}
