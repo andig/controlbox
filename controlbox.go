@@ -21,6 +21,8 @@ import (
 	"github.com/enbility/eebus-go/usecases/ma/mgcp"
 	"github.com/enbility/eebus-go/usecases/ma/mpc"
 	shipapi "github.com/enbility/ship-go/api"
+	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/enbility/ship-go/cert"
 	spineapi "github.com/enbility/spine-go/api"
 	"github.com/enbility/spine-go/model"
@@ -56,39 +58,78 @@ type controlbox struct {
 	mutex sync.Mutex
 }
 
-func (h *controlbox) run() {
-	var err error
-	var certificate tls.Certificate
-
-	if len(os.Args) == 4 {
-		certificate, err = tls.LoadX509KeyPair(os.Args[2], os.Args[3])
-		if err != nil {
-			usage()
-			log.Fatal(err)
-		}
-	} else {
-		certificate, err = cert.CreateCertificate("Demo", "Demo", "DE", "Demo-Unit-01")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		pemdata := pem.EncodeToMemory(&pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: certificate.Certificate[0],
-		})
-		fmt.Println(string(pemdata))
-
-		b, err := x509.MarshalECPrivateKey(certificate.PrivateKey.(*ecdsa.PrivateKey))
-		if err != nil {
-			log.Fatal(err)
-		}
-		pemdata = pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: b})
-		fmt.Println(string(pemdata))
+// resolveCertificate loads a TLS certificate from CERT_PEM / KEY_PEM.
+// OS environment variables are checked first; .env fills in any gaps.
+// If neither source provides values a self-signed certificate is generated,
+// persisted and returned so it is usable in the current run too.
+func resolveCertificate() (tls.Certificate, error) {
+	certPEM := os.Getenv("CERT_PEM")
+	keyPEM := os.Getenv("KEY_PEM")
+	if certPEM != "" && keyPEM != "" {
+		return tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
+	}
+	if (certPEM != "") != (keyPEM != "") {
+		return tls.Certificate{}, fmt.Errorf(
+			"both CERT_PEM and KEY_PEM must be set together (only one is present)")
 	}
 
+	// Nothing configured — generate and persist.
+	return generateAndPersistCertificate()
+}
+
+// generateAndPersistCertificate creates a self-signed certificate, encodes it
+// as inline PEM, appends CERT_PEM / KEY_PEM to .env for future runs, and
+// returns the certificate directly so it is usable in the current run too.
+func generateAndPersistCertificate() (tls.Certificate, error) {
+	const envPath = ".env"
+	log.Printf("No certificate configured — generating self-signed certificate")
+
+	certTLS, err := cert.CreateCertificate("Demo", "Demo", "DE", "Demo-Unit-01")
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("generate certificate: %w", err)
+	}
+
+	// Encode certificate PEM
+	certPEMBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certTLS.Certificate[0],
+	})
+
+	// Encode private key PEM
+	privKey, ok := certTLS.PrivateKey.(*ecdsa.PrivateKey)
+	if !ok {
+		return tls.Certificate{}, fmt.Errorf("unexpected private key type")
+	}
+	keyBytes, err := x509.MarshalECPrivateKey(privKey)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("marshal private key: %w", err)
+	}
+	keyPEMBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: keyBytes,
+	})
+
+	// Write CERT_PEM / KEY_PEM to .env — if we got here they were absent.
+	// godotenv.Write handles quoting/escaping; multi-line PEM is stored as-is.
+	if err := godotenv.Write(map[string]string{
+		"CERT_PEM": string(certPEMBytes),
+		"KEY_PEM":  string(keyPEMBytes),
+	}, envPath); err != nil {
+		return tls.Certificate{}, fmt.Errorf("write %s: %w", envPath, err)
+	}
+
+	log.Printf("Certificate generated and persisted to %s as CERT_PEM / KEY_PEM", envPath)
+	return certTLS, nil
+}
+
+func (h *controlbox) run() {
 	port, err := strconv.Atoi(os.Args[1])
 	if err != nil {
-		usage()
+		log.Fatal(err)
+	}
+
+	certificate, err := resolveCertificate()
+	if err != nil {
 		log.Fatal(err)
 	}
 

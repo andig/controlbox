@@ -20,13 +20,13 @@ go run . 4712
 2025-04-10 16:39:14 INFO  Local SKI: A46D9C217B8F335E921C4FAA087E615C9D2A73F0
 ```
 
-Note the local SKI which is logged on ControlBox startup. Certificate and key are automatically created and saved to respective files.
+Note the local SKI which is logged on ControlBox startup. Certificate and key are automatically created and saved.
 
 #### evcc
 
-As of evcc 0.301.0, EEBUS is enabled by default with certifacte/key being automatically created, dramatically simplifying setup.
+As of evcc 0.301.0, EEBUS is enabled by default with certificate/key being automatically created, dramatically simplifying setup.
 
-Add ControlBox to the `evcc.yaml`:
+Add ControlBox to the evcc config, e.g. `evcc.yaml`:
 ```
 hems:
   type: eebus
