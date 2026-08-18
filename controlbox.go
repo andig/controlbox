@@ -155,13 +155,14 @@ func (h *controlbox) run() {
 	h.myService = service.NewService(configuration, h)
 	h.myService.SetLogging(h)
 
-	// trust every remote service, as the old SetTrusted-on-discovery did
-	h.myService.SetAutoAccept(true)
-
 	if err = h.myService.Setup(); err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	// trust every remote service, as the old SetTrusted-on-discovery did.
+	// Setup creates the local service, so this must run after it.
+	h.myService.SetAutoAccept(true)
 
 	localEntity := h.myService.LocalDevice().EntityForType(model.EntityTypeTypeGridGuard)
 	h.uclpc = lpc.NewLPC(localEntity, h.OnLPCEvent)
