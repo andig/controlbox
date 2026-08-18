@@ -9,6 +9,10 @@ ControlBox is a sample EEBUS GridGuard implementation that implements these EEBU
 
 Forked from [vollautomat's eebus-go repository](https://github.com/vollautomat/eebus-go), based on [enbility's eebus-go implementation](https://github.com/enbility/eebus-go).
 
+### Prerequisites
+
+Building ControlBox requires [Go](https://go.dev/) and [Node.js/npm](https://nodejs.org/en).
+
 ### Installation & Execution
 
 #### ControlBox
