@@ -208,6 +208,18 @@ func (h *controlbox) VisibleRemoteMdnsServicesUpdated(service api.ServiceInterfa
 		fmt.Println("Remote SKI: " + element.Ski)
 	}
 
+	// Preserve any device that's still actively connected, even
+	// if the current mDNS record no longer includes it.
+	seen := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		seen[e.Ski] = true
+	}
+	for _, prev := range h.currentRemoteServices {
+		if h.isConnected[prev.Ski] && !seen[prev.Ski] {
+			entries = append(entries, prev)
+		}
+	}
+
 	h.currentRemoteServices = entries
 
 	frontend.sendNotification("", ServiceListChanged, "")
