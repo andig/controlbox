@@ -60,7 +60,7 @@ const (
 )
 
 type RemoteInfo struct {
-	Service  shipapi.RemoteService
+	Service  shipapi.RemoteMdnsService
 	Device   spineapi.DeviceRemoteInterface
 	UseCases []string
 }
@@ -85,7 +85,7 @@ type Message struct {
 	Limit        ucapi.LoadLimit
 	Value        float64
 	Values       []float64
-	ServiceList  []shipapi.RemoteService
+	ServiceList  []shipapi.RemoteMdnsService
 	EntityInfos  []EntityInfo
 	UseCaseInfos map[string][]UseCaseInfo
 	UseCase      string
@@ -160,7 +160,9 @@ func readData(h *controlbox, entity spineapi.EntityRemoteInterface, ucs []string
 func sendData(h *controlbox, ski string, uc string) {
 	switch uc {
 	case "":
-		frontend.sendText(QRCode, h.myService.QRCodeText())
+		if qr, err := h.myService.QRCodeText(); err == nil {
+			frontend.sendText(QRCode, qr)
+		}
 
 	case "LPC":
 		frontend.sendLimit(ski, GetConsumptionLimit, "LPC", ucapi.LoadLimit{
@@ -241,9 +243,8 @@ func reader(h *controlbox, ws *websocket.Conn) error {
 				connected, exists2 := h.isConnected[remoteSki]
 				if !exists2 || !connected {
 					// TODO
-					// second parameter shipID is optional, but if available it should be provided
-					// => test if available
-					h.myService.RegisterRemoteSKI(remoteSki, "")
+					// fingerprint and shipID are optional, but should be provided if available
+					h.myService.RegisterRemoteService(shipapi.NewServiceIdentity(remoteSki, "", ""))
 				}
 			} else if info.Device != nil {
 				for _, entity := range info.Device.Entities() {

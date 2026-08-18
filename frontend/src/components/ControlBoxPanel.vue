@@ -256,7 +256,7 @@
   interface RemoteService {
     name:       string,
 	  ski:        string,
-	  identifier: string,
+	  shipID:     string,
 	  brand:      string,
 	  type:       string,
 	  model:      string,
@@ -411,7 +411,7 @@
     public get deviceId() {
       if ( "" < this.selectedSki ) {
         var remoteService = this.remoteServices.find( rs => rs.ski == this.selectedSki );
-        return remoteService?.identifier ?? "";
+        return remoteService?.shipID ?? "";
       }
       else {
         return "";
