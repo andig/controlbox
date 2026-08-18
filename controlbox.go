@@ -53,7 +53,7 @@ type controlbox struct {
 	consumptionNominalMax     float64
 	productionNominalMax      float64
 
-	currentRemoteServices []shipapi.RemoteService
+	currentRemoteServices []shipapi.RemoteMdnsService
 
 	mutex sync.Mutex
 }
@@ -146,7 +146,7 @@ func (h *controlbox) run() {
 		[]shipapi.DeviceCategoryType{shipapi.DeviceCategoryTypeGridConnectionHub},
 		model.DeviceTypeTypeElectricitySupplySystem,
 		[]model.EntityTypeType{model.EntityTypeTypeGridGuard},
-		port, certificate, time.Second*10)
+		port, certificate, time.Second*10, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -159,6 +159,10 @@ func (h *controlbox) run() {
 		fmt.Println(err)
 		return
 	}
+
+	// trust every remote service, as the old SetTrusted-on-discovery did.
+	// Setup creates the local service, so this must run after it.
+	h.myService.SetAutoAccept(true)
 
 	localEntity := h.myService.LocalDevice().EntityForType(model.EntityTypeTypeGridGuard)
 	h.uclpc = lpc.NewLPC(localEntity, h.OnLPCEvent)
@@ -181,29 +185,27 @@ func (h *controlbox) run() {
 
 // EEBUSServiceHandler
 
-func (h *controlbox) RemoteSKIConnected(service api.ServiceInterface, ski string) {
-	remoteSki = ski
-	fmt.Println("RemoteSKIConnected: " + ski)
-	h.isConnected[ski] = true
+func (h *controlbox) RemoteServiceConnected(service api.ServiceInterface, identity shipapi.ServiceIdentity) {
+	remoteSki = identity.SKI
+	fmt.Println("RemoteServiceConnected: " + identity.SKI)
+	h.isConnected[identity.SKI] = true
 
-	frontend.sendText(SelectService, ski)
+	frontend.sendText(SelectService, identity.SKI)
 }
 
-func (h *controlbox) RemoteSKIDisconnected(service api.ServiceInterface, ski string) {
-	fmt.Println("RemoteSKIDisconnected: " + ski)
-	h.isConnected[ski] = false
+func (h *controlbox) RemoteServiceDisconnected(service api.ServiceInterface, identity shipapi.ServiceIdentity) {
+	fmt.Println("RemoteServiceDisconnected: " + identity.SKI)
+	h.isConnected[identity.SKI] = false
 
 	frontend.sendNotification("", ServiceListChanged, "")
 }
 
-func (h *controlbox) VisibleRemoteServicesUpdated(service api.ServiceInterface, entries []shipapi.RemoteService) {
-	fmt.Print("VisibleRemoteServicesUpdated, count: ")
+func (h *controlbox) VisibleRemoteMdnsServicesUpdated(service api.ServiceInterface, entries []shipapi.RemoteMdnsService) {
+	fmt.Print("VisibleRemoteMdnsServicesUpdated, count: ")
 	fmt.Println(len(entries))
 
 	for _, element := range entries {
 		fmt.Println("Remote SKI: " + element.Ski)
-		service := h.myService.RemoteServiceForSKI(element.Ski)
-		service.SetTrusted(true)
 	}
 
 	h.currentRemoteServices = entries
@@ -211,14 +213,14 @@ func (h *controlbox) VisibleRemoteServicesUpdated(service api.ServiceInterface, 
 	frontend.sendNotification("", ServiceListChanged, "")
 }
 
-func (h *controlbox) ServiceShipIDUpdate(ski string, shipdID string) {
+func (h *controlbox) ServiceUpdated(identity shipapi.ServiceIdentity) {
 }
 
-func (h *controlbox) ServicePairingDetailUpdate(ski string, detail *shipapi.ConnectionStateDetail) {
-	if ski == remoteSki && detail.State() == shipapi.ConnectionStateRemoteDeniedTrust {
+func (h *controlbox) ServicePairingDetailUpdate(identity shipapi.ServiceIdentity, detail *shipapi.ConnectionStateDetail) {
+	if identity.SKI == remoteSki && detail.State() == shipapi.ConnectionStateRemoteDeniedTrust {
 		fmt.Println("The remote service denied trust. Exiting.")
-		h.myService.CancelPairingWithSKI(ski)
-		h.myService.UnregisterRemoteSKI(ski)
+		h.myService.CancelPairing(identity)
+		h.myService.UnregisterRemoteService(identity)
 		h.myService.Shutdown()
 		os.Exit(1)
 	}
@@ -226,16 +228,22 @@ func (h *controlbox) ServicePairingDetailUpdate(ski string, detail *shipapi.Conn
 	frontend.sendNotification("", ServiceListChanged, "")
 }
 
-func (h *controlbox) AllowWaitingForTrust(ski string) bool {
-	//return ski == remoteSki
-	fmt.Println("AllowWaitingForTrust: " + ski)
-	return true
+func (h *controlbox) ServiceAutoTrusted(service api.ServiceInterface, identity shipapi.ServiceIdentity) {
+	fmt.Println("ServiceAutoTrusted: " + identity.ShipID)
+}
+
+func (h *controlbox) ServiceAutoTrustFailed(service api.ServiceInterface, identity shipapi.ServiceIdentity, reason error) {
+	fmt.Println("ServiceAutoTrustFailed: "+identity.ShipID+":", reason)
+}
+
+func (h *controlbox) ServiceAutoTrustRemoved(service api.ServiceInterface, identity shipapi.ServiceIdentity, reason string) {
+	fmt.Println("ServiceAutoTrustRemoved: " + identity.ShipID + ": " + reason)
 }
 
 func (h *controlbox) updateEntityInfos(ski string, device spineapi.DeviceRemoteInterface, uc string) {
 	info, exists := h.remoteInfos[ski]
 	if !exists {
-		indx := slices.IndexFunc(h.currentRemoteServices, func(v shipapi.RemoteService) bool { return v.Ski == ski })
+		indx := slices.IndexFunc(h.currentRemoteServices, func(v shipapi.RemoteMdnsService) bool { return v.Ski == ski })
 		h.remoteInfos[ski] = RemoteInfo{
 			Service:  h.currentRemoteServices[indx],
 			Device:   device,
@@ -273,7 +281,7 @@ func (h *controlbox) updateUseCaseInfos(ski string, device spineapi.DeviceRemote
 // LPC Event Handler
 
 func (h *controlbox) sendConsumptionLimit(entity spineapi.EntityRemoteInterface) {
-	resultCB := func(msg model.ResultDataType) {
+	resultCB := func(msg model.ResultDataType, msgCounter model.MsgCounterType) {
 		if *msg.ErrorNumber == model.ErrorNumberTypeNoError {
 			fmt.Println("Consumption limit accepted.")
 		} else {
@@ -393,7 +401,7 @@ func (h *controlbox) OnLPCEvent(ski string, device spineapi.DeviceRemoteInterfac
 // LPP Event Handler
 
 func (h *controlbox) sendProductionLimit(entity spineapi.EntityRemoteInterface) {
-	resultCB := func(msg model.ResultDataType) {
+	resultCB := func(msg model.ResultDataType, msgCounter model.MsgCounterType) {
 		if *msg.ErrorNumber == model.ErrorNumberTypeNoError {
 			fmt.Println("Production limit accepted.")
 		} else {

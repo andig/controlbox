@@ -86,7 +86,7 @@ func (websocketClient *WebsocketClient) sendLimit(ski string, messageType int, u
 	return websocketClient.sendMessage(answer)
 }
 
-func (websocketClient *WebsocketClient) sendServiceList(messageType int, services []shipapi.RemoteService) error {
+func (websocketClient *WebsocketClient) sendServiceList(messageType int, services []shipapi.RemoteMdnsService) error {
 	answer := Message{
 		Type:        messageType,
 		ServiceList: services}
